@@ -1,0 +1,17 @@
+{
+  "sources": [
+    {
+      "id": "python-docs",
+      "name": "Python Documentation",
+      "baseUrl": "https://docs.python.org/3/tutorial/",
+      "license": "Official documentation; explanations are original paraphrases"
+    },
+    {
+      "id": "mdn-javascript",
+      "name": "MDN Web Docs",
+      "baseUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+      "license": "CC BY-SA 2.5 or later; explanations are original paraphrases"
+    }
+  ],
+  "approvedChannels": []
+}

@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RunnerType {
+  PYODIDE
+  JS_WORKER
+  JUDGE0
+}
+
+enum ProgressStatus {
+  LOCKED
+  IN_PROGRESS
+  COMPLETED
+  MASTERED
+}
+
+enum QuestPeriod {
+  DAILY
+  WEEKLY
+}
+
+model User {
+  id             String           @id @default(uuid())
+  username       String           @unique
+  avatarUrl      String?
+  xp             Int              @default(0)
+  level          Int              @default(1)
+  hearts         Int              @default(5)
+  heartsRefillAt DateTime?
+  streakCount    Int              @default(0)
+  longestStreak  Int              @default(0)
+  lastActiveDay  DateTime?
+  streakFreezes  Int              @default(0)
+  createdAt      DateTime         @default(now())
+  progress       LessonProgress[]
+  badges         UserBadge[]
+  questLogs      UserQuest[]
+  settings       UserSettings?
+  xpEvents       XpEvent[]
+}
+
+model UserSettings {
+  userId        String  @id
+  ttsEnabled    Boolean @default(true)
+  ttsVoice      String?
+  ttsRate       Float   @default(1.0)
+  autoNarrate   Boolean @default(false)
+  voiceCommands Boolean @default(false)
+  theme         String  @default("system")
+  reducedMotion Boolean @default(false)
+  soundEnabled  Boolean @default(true)
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Language {
+  id          String     @id @default(uuid())
+  slug        String     @unique
+  name        String
+  iconUrl     String?
+  runnerType  RunnerType
+  judge0Id    Int?
+  description String
+  units       Unit[]
+}
+
+model Unit {
+  id         String   @id @default(uuid())
+  languageId String
+  order      Int
+  title      String
+  summary    String
+  language   Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  lessons    Lesson[]
+
+  @@unique([languageId, order])
+}
+
+model Lesson {
+  id         String           @id @default(uuid())
+  unitId     String
+  slug       String           @unique
+  order      Int
+  title      String
+  xpReward   Int              @default(20)
+  difficulty Int              @default(1)
+  sourceId   String
+  steps      Json
+  unit       Unit             @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  source     Source           @relation(fields: [sourceId], references: [id])
+  progress   LessonProgress[]
+
+  @@unique([unitId, order])
+}
+
+model Source {
+  id      String   @id @default(uuid())
+  name    String
+  baseUrl String
+  license String
+  lessons Lesson[]
+}
+
+model ApprovedChannel {
+  id        String @id @default(uuid())
+  channelId String @unique
+  name      String
+}
+
+model LessonProgress {
+  id          String         @id @default(uuid())
+  userId      String
+  lessonId    String
+  status      ProgressStatus @default(IN_PROGRESS)
+  stepIndex   Int            @default(0)
+  score       Int            @default(0)
+  attempts    Int            @default(0)
+  xpEarned    Int            @default(0)
+  completedAt DateTime?
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model Badge {
+  id          String      @id @default(uuid())
+  key         String      @unique
+  name        String
+  description String
+  iconUrl     String
+  rule        Json
+  users       UserBadge[]
+}
+
+model UserBadge {
+  userId  String
+  badgeId String
+  earnedAt DateTime @default(now())
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge   Badge     @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, badgeId])
+}
+
+model Quest {
+  id        String      @id @default(uuid())
+  key       String      @unique
+  title     String
+  target    Int
+  xpReward  Int
+  period    QuestPeriod
+  userLogs  UserQuest[]
+}
+
+model UserQuest {
+  id        String   @id @default(uuid())
+  userId    String
+  questId   String
+  progress  Int      @default(0)
+  periodKey String
+  claimed   Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest     Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, periodKey])
+}
+
+model XpEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Int
+  reason    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
